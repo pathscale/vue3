@@ -1,5 +1,6 @@
 import path from 'path'
-import ts from 'rollup-plugin-typescript2'
+// import ts from 'rollup-plugin-typescript2'
+import ts from '@pathscale/rollup-plugin-tsickle'
 import replace from '@rollup/plugin-replace'
 import json from '@rollup/plugin-json'
 
@@ -11,7 +12,7 @@ const masterVersion = require('./package.json').version
 const packagesDir = path.resolve(__dirname, 'packages')
 const packageDir = path.resolve(packagesDir, process.env.TARGET)
 const name = path.basename(packageDir)
-const resolve = p => path.resolve(packageDir, p)
+const resolve = (p) => path.resolve(packageDir, p)
 const pkg = require(resolve(`package.json`))
 const packageOptions = pkg.buildOptions || {}
 
@@ -21,34 +22,34 @@ let hasTSChecked = false
 const outputConfigs = {
   'esm-bundler': {
     file: resolve(`dist/${name}.esm-bundler.js`),
-    format: `es`
+    format: `es`,
   },
   'esm-browser': {
     file: resolve(`dist/${name}.esm-browser.js`),
-    format: `es`
+    format: `es`,
   },
   cjs: {
     file: resolve(`dist/${name}.cjs.js`),
-    format: `cjs`
+    format: `cjs`,
   },
   global: {
     file: resolve(`dist/${name}.global.js`),
-    format: `iife`
+    format: `iife`,
   },
 
   // runtime-only builds, for main "vue" package only
   'esm-bundler-runtime': {
     file: resolve(`dist/${name}.runtime.esm-bundler.js`),
-    format: `es`
+    format: `es`,
   },
   'esm-browser-runtime': {
     file: resolve(`dist/${name}.runtime.esm-browser.js`),
-    format: 'es'
+    format: 'es',
   },
   'global-runtime': {
     file: resolve(`dist/${name}.runtime.global.js`),
-    format: 'iife'
-  }
+    format: 'iife',
+  },
 }
 
 const defaultFormats = ['esm-bundler', 'cjs']
@@ -56,10 +57,10 @@ const inlineFormats = process.env.FORMATS && process.env.FORMATS.split(',')
 const packageFormats = inlineFormats || packageOptions.formats || defaultFormats
 const packageConfigs = process.env.PROD_ONLY
   ? []
-  : packageFormats.map(format => createConfig(format, outputConfigs[format]))
+  : packageFormats.map((format) => createConfig(format, outputConfigs[format]))
 
 if (process.env.NODE_ENV === 'production') {
-  packageFormats.forEach(format => {
+  packageFormats.forEach((format) => {
     if (packageOptions.prod === false) {
       return
     }
@@ -104,10 +105,10 @@ function createConfig(format, output, plugins = []) {
       compilerOptions: {
         sourceMap: output.sourcemap,
         declaration: shouldEmitDeclarations,
-        declarationMap: shouldEmitDeclarations
+        declarationMap: shouldEmitDeclarations,
       },
-      exclude: ['**/__tests__', 'test-dts']
-    }
+      exclude: ['**/__tests__', 'test-dts'],
+    },
   })
   // we only need to check TS and generate declarations once for each build.
   // it also seems to run into weird issues when checking multiple times
@@ -129,26 +130,26 @@ function createConfig(format, output, plugins = []) {
         [
           ...Object.keys(pkg.dependencies || {}),
           ...Object.keys(pkg.peerDependencies || {}),
-          ...['path', 'url'] // for @vue/compiler-sfc
+          ...['path', 'url'], // for @vue/compiler-sfc
         ]
 
   // the browser builds of @vue/compiler-sfc requires postcss to be available
   // as a global (e.g. http://wzrd.in/standalone/postcss)
   output.globals = {
-    postcss: 'postcss'
+    postcss: 'postcss',
   }
 
   const nodePlugins =
     packageOptions.enableNonBrowserBranches && format !== 'cjs'
       ? [
           require('@rollup/plugin-node-resolve').nodeResolve({
-            preferBuiltins: true
+            preferBuiltins: true,
           }),
           require('@rollup/plugin-commonjs')({
-            sourceMap: false
+            sourceMap: false,
           }),
           require('rollup-plugin-node-builtins')(),
-          require('rollup-plugin-node-globals')()
+          require('rollup-plugin-node-globals')(),
         ]
       : []
 
@@ -159,7 +160,7 @@ function createConfig(format, output, plugins = []) {
     external,
     plugins: [
       json({
-        namedExports: false
+        namedExports: false,
       }),
       tsPlugin,
       createReplacePlugin(
@@ -173,7 +174,7 @@ function createConfig(format, output, plugins = []) {
         isNodeBuild
       ),
       ...nodePlugins,
-      ...plugins
+      ...plugins,
     ],
     output,
     onwarn: (msg, warn) => {
@@ -182,8 +183,8 @@ function createConfig(format, output, plugins = []) {
       }
     },
     treeshake: {
-      moduleSideEffects: false
-    }
+      moduleSideEffects: false,
+    },
   }
 }
 
@@ -219,13 +220,13 @@ function createReplacePlugin(
           'context.onError(': `/*#__PURE__*/ context.onError(`,
           'emitError(': `/*#__PURE__*/ emitError(`,
           'createCompilerError(': `/*#__PURE__*/ createCompilerError(`,
-          'createDOMCompilerError(': `/*#__PURE__*/ createDOMCompilerError(`
+          'createDOMCompilerError(': `/*#__PURE__*/ createDOMCompilerError(`,
         }
-      : {})
+      : {}),
   }
   // allow inline overrides like
   //__RUNTIME_COMPILE__=true yarn build runtime-core
-  Object.keys(replacements).forEach(key => {
+  Object.keys(replacements).forEach((key) => {
     if (key in process.env) {
       replacements[key] = process.env[key]
     }
@@ -236,26 +237,26 @@ function createReplacePlugin(
 function createProductionConfig(format) {
   return createConfig(format, {
     file: resolve(`dist/${name}.${format}.prod.js`),
-    format: outputConfigs[format].format
+    format: outputConfigs[format].format,
   })
 }
 
 function createMinifiedConfig(format) {
-  const { terser } = require('rollup-plugin-terser')
+  // const { terser } = require('rollup-plugin-terser')
   return createConfig(
     format,
     {
       file: outputConfigs[format].file.replace(/\.js$/, '.prod.js'),
-      format: outputConfigs[format].format
+      format: outputConfigs[format].format,
     },
     [
-      terser({
-        module: /^esm/.test(format),
-        compress: {
-          ecma: 2015,
-          pure_getters: true
-        }
-      })
+      // terser({
+      //   module: /^esm/.test(format),
+      //   compress: {
+      //     ecma: 2015,
+      //     pure_getters: true,
+      //   },
+      // }),
     ]
   )
 }
